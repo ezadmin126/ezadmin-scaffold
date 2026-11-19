@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{account/fragments :: head('退出登录', false)}"></head>
+<body>
+<main class="account-card">
+    <h1>退出登录</h1>
+    <form method="post" th:action="@{/logout}">
+        <button type="submit">确认退出</button>
+        <a th:href="@{/}">取消</a>
+    </form>
+</main>
+</body>
+</html>

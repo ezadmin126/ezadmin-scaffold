@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{account/fragments :: head('用户管理', true)}"></head>
+<body>
+<main class="admin-page">
+    <h1>用户管理</h1>
+    <div th:replace="~{account/fragments :: messages}"></div>
+    <section class="admin-panel">
+        <h2>新增用户</h2>
+        <form method="post" th:action="@{/system/users}">
+            <label class="field">用户名 <input name="username" maxlength="40" required></label>
+            <label class="field">初始密码 <input name="password" type="password" minlength="8" autocomplete="new-password" required></label>
+            <fieldset>
+                <legend>角色</legend>
+                <label th:each="item : ${roles}">
+                    <input type="checkbox" name="roles" th:value="${item.role.code}">
+                    <span th:text="${item.role.name}"></span>
+                </label>
+            </fieldset>
+            <button type="submit">新增用户</button>
+        </form>
+    </section>
+    <section class="admin-panel">
+        <h2>已有用户</h2>
+        <details class="account-entry" th:each="row : ${users}">
+            <summary><span th:text="${row.user.username}"></span>
+                · <span th:text="${row.user.enabled ? '已启用' : '已停用'}"></span>
+                · <span th:text="${#strings.listJoin(row.roleCodes, '、')}"></span>
+            </summary>
+            <form th:if="${row.user.username != 'admin'}" method="post" th:action="@{/system/users/{id}(id=${row.user.id})}">
+                <label><input type="checkbox" name="enabled" value="true" th:checked="${row.user.enabled}"> 启用</label>
+                <fieldset>
+                    <legend>角色</legend>
+                    <label th:each="item : ${roles}">
+                        <input type="checkbox" name="roles" th:value="${item.role.code}"
+                               th:checked="${row.roleCodes.contains(item.role.code)}">
+                        <span th:text="${item.role.name}"></span>
+                    </label>
+                </fieldset>
+                <button type="submit">保存账号设置</button>
+            </form>
+            <form method="post" th:action="@{/system/users/{id}/password(id=${row.user.id})}">
+                <label class="field">新密码 <input name="password" type="password" minlength="8" autocomplete="new-password" required></label>
+                <button type="submit">重置密码</button>
+            </form>
+        </details>
+    </section>
+</main>
+</body>
+</html>

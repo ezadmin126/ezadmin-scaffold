@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{account/fragments :: head('角色与权限', true)}"></head>
+<body>
+<main class="admin-page">
+    <h1>角色与权限</h1>
+    <div th:replace="~{account/fragments :: messages}"></div>
+    <section class="admin-panel">
+        <h2>新增角色</h2>
+        <form method="post" th:action="@{/system/roles}">
+            <label class="field">角色代码 <input name="code" maxlength="32" pattern="[A-Za-z][A-Za-z0-9_]*" required></label>
+            <label class="field">角色名称 <input name="name" maxlength="80" required></label>
+            <fieldset>
+                <legend>权限</legend>
+                <label th:each="permission : ${permissions}">
+                    <input type="checkbox" name="permissions" th:value="${permission.name()}">
+                    <span th:text="${permission.label}"></span>
+                </label>
+            </fieldset>
+            <button type="submit">新增角色</button>
+        </form>
+    </section>
+    <section class="admin-panel">
+        <h2>已有角色</h2>
+        <details class="account-entry" th:each="row : ${roles}">
+            <summary><span th:text="${row.role.name}"></span> · <span th:text="${row.role.code}"></span></summary>
+            <ul th:if="${row.builtin}">
+                <li th:each="permission : ${permissions}" th:if="${row.permissions.contains(permission.name())}"
+                    th:text="${permission.label}"></li>
+            </ul>
+            <form th:unless="${row.builtin}" method="post" th:action="@{/system/roles/{code}(code=${row.role.code})}">
+                <label class="field">角色名称 <input name="name" maxlength="80" required th:value="${row.role.name}"></label>
+                <fieldset>
+                    <legend>权限</legend>
+                    <label th:each="permission : ${permissions}">
+                        <input type="checkbox" name="permissions" th:value="${permission.name()}"
+                               th:checked="${row.permissions.contains(permission.name())}">
+                        <span th:text="${permission.label}"></span>
+                    </label>
+                </fieldset>
+                <button type="submit">保存角色</button>
+            </form>
+        </details>
+    </section>
+</main>
+</body>
+</html>

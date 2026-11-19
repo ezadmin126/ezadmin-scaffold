@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>原生资产管理</title>
+    <link rel="stylesheet" href="/static/ez-layout/ez-layout.css?v=1"
+          th:href="@{/static/ez-layout/ez-layout.css(v=1)}">
+    <script src="/scaffold/security.js" th:src="@{/scaffold/security.js}"></script>
+    <script src="/static/ez-layout/ez-layout.js?v=20261018-brand"
+            th:src="@{/static/ez-layout/ez-layout.js(v='20261018-brand')}" defer
+            data-layout="sidebar" data-menu="/laynavs.html" th:attr="data-menu=@{/laynavs.html}"
+            data-content-padding="10"></script>
+    <style>
+        body { font-family: system-ui, sans-serif; color: #263446; }
+        .assets { max-width: 1040px; margin: 16px auto; }
+        .panel { background: #fff; border: 1px solid #dce3ec; border-radius: 6px; padding: 18px; }
+        h1 { margin: 0 0 16px; font-size: 24px; }
+        h2 { margin: 0 0 12px; font-size: 16px; }
+        form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; }
+        label { display: grid; gap: 6px; }
+        input, textarea, button { font: inherit; }
+        input, textarea { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #9daec2; border-radius: 4px; }
+        button { cursor: pointer; border: 1px solid #9daec2; border-radius: 4px; background: #fff; color: inherit; padding: 6px 12px; }
+        button[type="submit"] { background: #206bc4; border-color: #206bc4; color: #fff; }
+        button:disabled { cursor: wait; opacity: .6; }
+        .actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+        .list { margin-top: 12px; overflow: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 10px 8px; border-bottom: 1px solid #dce3ec; vertical-align: top; }
+        th { background: #f5f7fb; }
+        td:last-child { white-space: nowrap; }
+        td button + button { margin-left: 8px; }
+        #status { margin: 10px 0 0; color: #49596b; }
+        #status.error { color: #a6261c; }
+        @media (max-width: 600px) { form { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<main class="assets">
+    <h1>原生资产管理</h1>
+    <section class="panel" aria-labelledby="form-title" th:hidden="${!canWrite}">
+        <h2 id="form-title">新增资产</h2>
+        <form id="asset-form" data-api="/api/native/assets"
+              th:attr="data-api=@{/api/native/assets},data-write=${canWrite}">
+            <label>资产名称 <input id="asset-name" name="name" required maxlength="100"></label>
+            <label>备注 <textarea name="notes" maxlength="300" rows="2"></textarea></label>
+            <div class="actions">
+                <button type="submit">保存</button>
+                <button id="cancel-edit" type="button" hidden>取消编辑</button>
+            </div>
+        </form>
+    </section>
+    <p id="status" role="status"></p>
+    <section class="panel list" aria-labelledby="list-title">
+        <h2 id="list-title">资产列表</h2>
+        <table>
+            <thead><tr><th scope="col">ID</th><th scope="col">资产名称</th><th scope="col">备注</th><th scope="col">操作</th></tr></thead>
+            <tbody id="asset-rows"></tbody>
+        </table>
+    </section>
+</main>
+<script>
+    const form = document.querySelector('#asset-form');
+    const endpoint = form.dataset.api;
+    const canWrite = form.dataset.write === 'true';
+    const formTitle = document.querySelector('#form-title');
+    const cancelEdit = document.querySelector('#cancel-edit');
+    const rows = document.querySelector('#asset-rows');
+    const status = document.querySelector('#status');
+    let editingId = null;
+    let busy = false;
+
+    function notify(message, isError = false) {
+        status.textContent = message;
+        status.classList.toggle('error', isError);
+    }
+
+    async function request(path = '', method = 'GET', data) {
+        const options = { method };
+        if (data) {
+            options.headers = { 'Content-Type': 'application/json' };
+            options.body = JSON.stringify(data);
+        }
+        const response = await fetch(endpoint + path, options);
+        if (!response.ok) {
+            const problem = await response.json().catch(() => null);
+            throw new Error(problem?.detail || (response.status === 404 ? '资产不存在或已删除。' : '请求失败，请重试。'));
+        }
+        return response.status === 204 ? null : response.json();
+    }
+
+    function setEditor(asset) {
+        form.reset();
+        editingId = asset?.id ?? null;
+        formTitle.textContent = asset ? '编辑资产' : '新增资产';
+        cancelEdit.hidden = !asset;
+        if (asset) {
+            form.elements.name.value = asset.name;
+            form.elements.notes.value = asset.notes ?? '';
+            form.elements.name.focus();
+        }
+    }
+
+    function action(label, handler) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = label;
+        button.addEventListener('click', handler);
+        return button;
+    }
+
+    async function refresh() {
+        const assets = await request();
+        rows.replaceChildren();
+        for (const asset of assets) {
+            const row = rows.insertRow();
+            for (const value of [asset.id, asset.name, asset.notes]) {
+                row.insertCell().textContent = value ?? '';
+            }
+            const controls = row.insertCell();
+            if (!canWrite) continue;
+            controls.append(
+                action('编辑', () => { if (!busy) setEditor(asset); }),
+                action('删除', () => {
+                    if (busy || !window.confirm('删除「' + asset.name + '」？')) return;
+                    save(async () => {
+                        await request('/' + asset.id, 'DELETE');
+                        if (editingId === asset.id) setEditor();
+                        return '已删除。';
+                    });
+                }));
+        }
+        if (!assets.length) {
+            const empty = rows.insertRow().insertCell();
+            empty.colSpan = 4;
+            empty.textContent = '暂无资产。';
+        }
+    }
+
+    async function save(change) {
+        if (busy) return;
+        busy = true;
+        form.querySelector('button[type="submit"]').disabled = true;
+        try {
+            const message = await change();
+            try {
+                await refresh();
+                notify(message);
+            } catch (error) {
+                notify(message + ' 列表刷新失败，请刷新页面。', true);
+            }
+        } catch (error) {
+            notify(error.message, true);
+        } finally {
+            busy = false;
+            form.querySelector('button[type="submit"]').disabled = false;
+        }
+    }
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(form));
+        save(async () => {
+            await (editingId === null ? request('', 'POST', data) : request('/' + editingId, 'PUT', data));
+            setEditor();
+            return '已保存。';
+        });
+    });
+    cancelEdit.addEventListener('click', () => { if (!busy) setEditor(); });
+    refresh().catch((error) => notify(error.message, true));
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+{
+  "logoInfo": {
+    "title": "EzAdmin",
+    "href": "/",
+    "image": ""
+  },
+  "menuInfo": [
+    {
+      "id": "demo",
+      "pid": "0",
+      "title": "示例管理",
+      "href": "",
+      "target": "_self",
+      "icon": "layui-icon layui-icon-app",
+      "child": [
+        {
+          "id": "demo-asset",
+          "pid": "demo",
+          "title": "资产管理",
+          "href": "/p/list/page-demo/asset",
+          "target": "_self",
+          "icon": "layui-icon layui-icon-list"
+        },
+        {
+          "id": "demo-native-asset",
+          "pid": "demo",
+          "title": "原生资产管理",
+          "href": "/native/assets.html",
+          "target": "_self",
+          "icon": "layui-icon layui-icon-list"
+        }
+      ]
+    },
+    {
+      "id": "system",
+      "pid": "0",
+      "title": "系统管理",
+      "href": "",
+      "target": "_self",
+      "icon": "layui-icon layui-icon-set",
+      "child": [
+        {"id": "system-users", "pid": "system", "title": "用户管理", "href": "/system/users.html", "target": "_self"},
+        {"id": "system-roles", "pid": "system", "title": "角色与权限", "href": "/system/roles.html", "target": "_self"}
+      ]
+    }
+  ]
+}

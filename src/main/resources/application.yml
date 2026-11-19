@@ -1,0 +1,33 @@
+server:
+  address: 127.0.0.1
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/ezadmin;MODE=MySQL
+    username: sa
+    password: ''
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+  thymeleaf:
+    cache: false
+  h2:
+    console:
+      enabled: false
+
+topezadmin:
+  cache-flag: false
+  layout: fluid
+  prefixUrl: /p/
+  navUrl: /laynavs.html
+
+camunda.bpm:
+  deployment-resource-pattern: classpath*:/processes/*.bpmn
+  database:
+    schema-update: true
+
+scaffold:
+  admin-password: ${EZADMIN_ADMIN_PASSWORD:123456}
+

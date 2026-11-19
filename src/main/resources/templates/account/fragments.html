@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title, layout)">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title}">管理系统</title>
+    <link rel="stylesheet" th:href="@{/scaffold/account.css}">
+    <link rel="stylesheet" th:if="${layout}" th:href="@{/static/ez-layout/ez-layout.css(v=1)}">
+    <script th:if="${layout}" th:src="@{/static/ez-layout/ez-layout.js(v='20261018-brand')}" defer
+            data-layout="sidebar" th:attr="data-menu=@{/laynavs.html}" data-content-padding="10"></script>
+</head>
+<body>
+<div th:fragment="messages" role="status">
+    <p class="error" th:if="${error}" th:text="${error}"></p>
+    <p class="notice" th:if="${success}" th:text="${success}"></p>
+</div>
+</body>
+</html>
